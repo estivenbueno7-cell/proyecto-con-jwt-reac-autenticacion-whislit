@@ -13,5 +13,6 @@ public record ProductResponse(
         Boolean active,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
+
 ) {
 }
