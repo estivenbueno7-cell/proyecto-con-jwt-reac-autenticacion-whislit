@@ -1,9 +1,13 @@
+
 package com.kevdev.wishlist.service;
 
+import com.kevdev.wishlist.dto.ProductRequest;
+import com.kevdev.wishlist.dto.ProductResponse;
+import com.kevdev.wishlist.Entity.Product;
+import com.kevdev.wishlist.mapper.ProductMapper;
+import com.kevdev.wishlist.repository.ProductRepository;
 
-import com.kevdev.wishlist.Entity.Product; // importamos entidad
-import com.kevdev.wishlist.repository.ProductRepository;// inportamos repository
-import org.springframework.stereotype.Service; // activamos el servce
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -11,55 +15,100 @@ import java.util.List;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final ProductMapper productMapper;
 
-    public ProductService(ProductRepository productRepository) {
+    // CONSTRUCTOR
+    public ProductService(
+            ProductRepository productRepository,
+            ProductMapper productMapper
+    ) {
         this.productRepository = productRepository;
+        this.productMapper = productMapper;
     }
 
-    public List<Product> getAllProducts() {   // metodo de listar o buscar a todos
-        return productRepository.findAll();
-    }
-       // BUSCAR PRODUCTO POR ID
-    public Product getProductById(Long id) {
+    // ==========================================
+    // LISTAR TODOS LOS PRODUCTOS
+    // ==========================================
+    public List<ProductResponse> getAllProducts() {
 
-        return productRepository.findById(id)
+        return productRepository.findAll()
+                .stream()
+                .map(productMapper::toResponse)
+                .toList();
+    }
+
+    // ==========================================
+    // BUSCAR PRODUCTO POR ID
+    // ==========================================
+    public ProductResponse getProductById(Long id) {
+
+        Product product = productRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Producto no encontrado con ID: " + id)
+                        new RuntimeException(
+                                "Producto no encontrado con ID: " + id
+                        )
                 );
+
+        return productMapper.toResponse(product);
     }
 
+    // ==========================================
     // CREAR PRODUCTO
-    public Product createProduct(Product product) {
+    // ==========================================
+    public ProductResponse createProduct(ProductRequest request) {
 
-        return productRepository.save(product);
+        // Convertimos ProductRequest → Product
+        Product product = productMapper.toEntity(request);
+
+        // Guardamos en PostgreSQL
+        Product savedProduct = productRepository.save(product);
+
+        // Convertimos Product → ProductResponse
+        return productMapper.toResponse(savedProduct);
     }
 
+    // ==========================================
     // ACTUALIZAR PRODUCTO
-    public Product updateProduct(Long id, Product product) {
+    // ==========================================
+    public ProductResponse updateProduct(
+            Long id,
+            ProductRequest request
+    ) {
 
-        Product existingProduct = productRepository.findById(id)
+        // Buscamos el producto existente
+        Product product = productRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Producto no encontrado con ID: " + id)
+                        new RuntimeException(
+                                "Producto no encontrado con ID: " + id
+                        )
                 );
 
-        existingProduct.setName(product.getName());
-        existingProduct.setDescription(product.getDescription());
-        existingProduct.setPrice(product.getPrice());
-        existingProduct.setStock(product.getStock());
-        existingProduct.setActive(product.getActive());
+        // Actualizamos los datos
+        product.setName(request.name());
+        product.setDescription(request.description());
+        product.setPrice(request.price());
+        product.setStock(request.stock());
+        product.setActive(request.active());
 
-        return productRepository.save(existingProduct);
+        // Guardamos los cambios
+        Product updatedProduct = productRepository.save(product);
+
+        // Devolvemos respuesta
+        return productMapper.toResponse(updatedProduct);
     }
 
+    // ==========================================
     // ELIMINAR PRODUCTO
+    // ==========================================
     public void deleteProduct(Long id) {
 
-        if (!productRepository.existsById(id)) {
-            throw new RuntimeException(
-                    "Producto no encontrado con ID: " + id
-            );
-        }
+        Product product = productRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Producto no encontrado con ID: " + id
+                        )
+                );
 
-        productRepository.deleteById(id);
+        productRepository.delete(product);
     }
 }
