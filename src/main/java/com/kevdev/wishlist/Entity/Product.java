@@ -23,6 +23,9 @@ public class Product {
     private String name;
 
     @Column(length = 500)
+    private String imageUrl;
+    
+    @Column(length = 500)
     private String description;
 
     @Column(nullable = false, precision = 12, scale = 2)
